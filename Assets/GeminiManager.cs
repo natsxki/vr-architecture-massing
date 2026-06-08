@@ -8,8 +8,8 @@ using Newtonsoft.Json.Linq;
 public class GeminiManager : MonoBehaviour
 {
     [Header("API Settings")]
-    public string apiKey = "AIzaSyC6EWtcAimoo4gb847btbgYMiM1M28H0hw";
-    private string endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+    public string apiKey = "AQ.Ab8RN6I6JpDbMDkT8jYL7TP7R-vrQIcovzRfLHl-Gr4i-_244A";
+    private string endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
 
     [Header("References")]
     public MassingGenerator generator;

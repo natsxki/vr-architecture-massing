@@ -6,6 +6,7 @@
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 
+
 # Memory dumps
 *.kdmp
 *.vspackage

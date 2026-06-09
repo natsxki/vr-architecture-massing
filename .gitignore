@@ -23,6 +23,31 @@ ASALocalRun*
 
 # Visual Studio cache directory
 .vs/
+.vs/
+ExportedObj/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.opendb
+*.IDB
+*.VC.db
+*.sln.docstates
+
+# VSCode cache directory
+.vscode/
+*.code-workspace
+
+# JetBrains Rider cache directory
+.idea/
+*.sln.iml
 
 # Gradle cache directory
 .gradle/
@@ -51,15 +76,41 @@ ExportedObj/
 *.mdb.meta
 
 # Unity3D Generated File On Crash Reports
+ASALocalRun*
+/Assets/AssetStoreTools*
 sysinfo.txt
+~$*
 
 # Builds
 *.apk
 *.aab
 *.unitypackage
 *.app
+*.obb
 
 # macOS specific
 .DS_Store
 .AppleDouble
 .LSOverride
+._*
+.Spotlight-V100
+.Trashes
+Icon\r
+
+# Windows specific
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+
+# Oculus specific
+/[Aa]ssets/[Oo]culus/PlayCompanionTemp/
+/[Aa]ssets/Oculus/VR/Editor/AndroidManifest.xml
+
+# Keys
+*.keystore
+*.jks
+*.userkeys

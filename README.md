@@ -2,7 +2,7 @@
 
 An interactive Virtual Reality prototype that leverages generative AI to instantly translate spoken architectural concepts into 3D massing models. Designed for the Meta Quest, this tool allows users to rapidly iterate on spatial designs for a small sensory museum using just their voice (and eventually the VR set controller).
 
-This project was made by @Lomerson, @zozozn, @natsxki :)
+This project was made by [Yue Jia](https://github.com/mzozozn), [Yongyan Luo](https://github.com/Lomerson) and [Lylia Mesa](https://github.com/natsxki) :)
 
 
 ## Project Overview

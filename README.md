@@ -36,8 +36,11 @@ The generated models are simplified representations using colored rectangular vo
 
 ## Example Interaction
 
-**User Voice Input:** 
-> *"Entrance hall is wide and low at the center. Light gallery is tall and narrow on the left."*
+**Place selection in the scene with the controller**
+
+**User Voice Input (step by step):** 
+> *"Entrance hall is wide and low at the center.*
+> *Light gallery is tall and narrow on the left."*
 
 **System Output (JSON from LLM):**
 ```json

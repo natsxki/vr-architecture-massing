@@ -1,17 +1,16 @@
 using System;
 using UnityEngine;
 using UnityEngine.XR;
-// Note: using UnityEngine.XR (not UnityEngine.XR.Interaction.Toolkit)
-// This uses the low-level XR device API which works with any XR headset.
 
 /// <summary>
 /// Manages ground cursor, anchor placement, and voice trigger signal.
 /// Uses low-level UnityEngine.XR device polling — no InputActionReference needed.
 ///
 /// Quest 3S right controller bindings:
-///   Primary Trigger  -> place / replace anchor
-///   B Button         -> cancel anchor
-///   Grip             -> fire OnVoiceTrigger event (voice module entry point)
+///   Primary Trigger      -> place / replace anchor
+///   B Button             -> cancel anchor
+///   Grip (Press & Hold)  -> fire OnVoiceRecordStart
+///   Grip (Release)       -> fire OnVoiceRecordStop (passes anchor position)
 /// </summary>
 public class GroundAnchorManager : MonoBehaviour
 {
@@ -27,6 +26,10 @@ public class GroundAnchorManager : MonoBehaviour
     public Transform rayOrigin;
 
     public float raycastMaxDistance = 50f;
+
+    [Header("Pointer Line")]
+    public float lineWidth = 0.005f;
+    public Color lineColor = new Color(1f, 1f, 1f, 0.4f);
 
     [Header("Cursor")]
     public float cursorDiameter = 0.3f;
@@ -53,11 +56,16 @@ public class GroundAnchorManager : MonoBehaviour
     public Vector3 AnchorWorldPosition { get; private set; }
 
     /// <summary>
-    /// Fired when grip is pressed with an active anchor.
-    /// Speech module subscribes here:
-    ///   FindObjectOfType&lt;GroundAnchorManager&gt;().OnVoiceTrigger += YourMethod;
+    /// Fired when grip is pressed (and held) with an active anchor.
+    /// Speech module subscribes here to START recording.
     /// </summary>
-    public event Action<Vector3> OnVoiceTrigger;
+    public event Action OnVoiceRecordStart;
+
+    /// <summary>
+    /// Fired when grip is released. Passes the anchor coordinates.
+    /// Speech module subscribes here to STOP recording and send data to LLM.
+    /// </summary>
+    public event Action<Vector3> OnVoiceRecordStop;
 
     // -------------------------------------------------------------------------
     // Private
@@ -65,11 +73,15 @@ public class GroundAnchorManager : MonoBehaviour
 
     private GameObject _cursorDisc;
     private GameObject _crossMarker;
+    private LineRenderer _pointerLine;
 
-    // Rising-edge state
+    // Rising/Falling edge state
     private bool _triggerWasPressed = false;
     private bool _gripWasPressed    = false;
     private bool _bWasPressed       = false;
+
+    // Recording state lock
+    private bool _isRecording       = false;
 
     // Device search throttle
     private InputDevice _rightController;
@@ -91,6 +103,8 @@ public class GroundAnchorManager : MonoBehaviour
 
         BuildCursorDisc();
         BuildCrossMarker();
+        BuildPointerLine();
+        
         _cursorDisc.SetActive(false);
         _crossMarker.SetActive(false);
 
@@ -110,28 +124,36 @@ public class GroundAnchorManager : MonoBehaviour
         bool triggerPressed = triggerVal >= analogThreshold;
         bool gripPressed    = gripVal    >= analogThreshold;
 
-        // --- Rising edge ---
+        // --- Rising & Falling edges ---
         bool triggerRising = triggerPressed && !_triggerWasPressed;
-        bool gripRising    = gripPressed    && !_gripWasPressed;
         bool bRising       = bPressed       && !_bWasPressed;
+        
+        bool gripRising    = gripPressed    && !_gripWasPressed;
+        bool gripFalling   = !gripPressed   && _gripWasPressed;
 
-        // --- Raycast ---
+        // --- Raycast & Pointer Line ---
         bool hitGround = false;
         RaycastHit hit = default;
         if (rayOrigin != null)
         {
+            _pointerLine.enabled = true;
+            _pointerLine.SetPosition(0, rayOrigin.position);
+
             Ray ray = new Ray(rayOrigin.position, rayOrigin.forward);
             hitGround = Physics.Raycast(ray, out hit, raycastMaxDistance, groundLayerMask);
 
-            // Update cursor
             if (hitGround)
             {
+                _pointerLine.SetPosition(1, hit.point);
+                
                 _cursorDisc.SetActive(true);
                 _cursorDisc.transform.position = hit.point + Vector3.up * cursorYOffset;
                 _cursorDisc.transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
             }
             else
             {
+                // Shoot line to max distance if nothing is hit
+                _pointerLine.SetPosition(1, rayOrigin.position + rayOrigin.forward * raycastMaxDistance);
                 _cursorDisc.SetActive(false);
             }
         }
@@ -139,7 +161,6 @@ public class GroundAnchorManager : MonoBehaviour
         // --- Place anchor ---
         if (triggerRising)
         {
-            Debug.Log($"[AnchorSystem] Trigger pressed. hitGround={hitGround}");
             if (hitGround)
             {
                 AnchorWorldPosition = hit.point;
@@ -148,40 +169,47 @@ public class GroundAnchorManager : MonoBehaviour
                 _crossMarker.transform.position = hit.point + Vector3.up * crossYOffset;
                 Debug.Log($"[AnchorSystem] *** Anchor PLACED at {AnchorWorldPosition} ***");
             }
-            else
-            {
-                // Extra debug: cast without mask to identify what was hit
-                Ray debugRay = new Ray(rayOrigin.position, rayOrigin.forward);
-                if (Physics.Raycast(debugRay, out RaycastHit debugHit, raycastMaxDistance))
-                    Debug.LogWarning($"[AnchorSystem] Ray hit '{debugHit.collider.name}' " +
-                                     $"on layer '{LayerMask.LayerToName(debugHit.collider.gameObject.layer)}' " +
-                                     $"— not your ground layer. Check groundLayerMask.");
-                else
-                    Debug.LogWarning("[AnchorSystem] Ray hit nothing. Is the ground collider enabled?");
-            }
         }
 
         // --- Cancel anchor ---
         if (bRising)
         {
-            Debug.Log($"[AnchorSystem] B pressed. Cancelling anchor (was {HasAnchor}).");
             HasAnchor = false;
             _crossMarker.SetActive(false);
+            
+            // Safety measure: if user cancels anchor while recording, abort recording
+            if (_isRecording)
+            {
+                _isRecording = false;
+                Debug.LogWarning("[AnchorSystem] Anchor cancelled during recording. Aborting voice record.");
+                // You could optionally fire an OnVoiceRecordAbort event here if needed.
+            }
+            
             Debug.Log("[AnchorSystem] *** Anchor CANCELLED ***");
         }
 
-        // --- Voice trigger ---
+        // --- Voice Trigger Logic (Press and Hold) ---
         if (gripRising)
         {
-            Debug.Log($"[AnchorSystem] Grip pressed. HasAnchor={HasAnchor}");
             if (HasAnchor)
             {
-                Debug.Log($"[AnchorSystem] *** OnVoiceTrigger FIRED. Anchor={AnchorWorldPosition} ***");
-                OnVoiceTrigger?.Invoke(AnchorWorldPosition);
+                _isRecording = true;
+                Debug.Log("[AnchorSystem] *** Voice Recording STARTED ***");
+                OnVoiceRecordStart?.Invoke();
             }
             else
             {
                 Debug.LogWarning("[AnchorSystem] Grip pressed but no anchor set. Place one first.");
+            }
+        }
+
+        if (gripFalling)
+        {
+            if (_isRecording)
+            {
+                _isRecording = false;
+                Debug.Log($"[AnchorSystem] *** Voice Recording STOPPED. Sending Data. Anchor={AnchorWorldPosition} ***");
+                OnVoiceRecordStop?.Invoke(AnchorWorldPosition);
             }
         }
 
@@ -192,7 +220,7 @@ public class GroundAnchorManager : MonoBehaviour
     }
 
     // -------------------------------------------------------------------------
-    // Device discovery (retries every 2 s until found)
+    // Device discovery
     // -------------------------------------------------------------------------
 
     private void TryFindRightController()
@@ -209,19 +237,30 @@ public class GroundAnchorManager : MonoBehaviour
         {
             _rightController = devices[0];
             _deviceFound     = true;
-            Debug.Log($"[AnchorSystem] Right controller found: '{_rightController.name}' " +
-                      $"| manufacturer: '{_rightController.manufacturer}'");
-        }
-        else
-        {
-            Debug.LogWarning("[AnchorSystem] Right controller not found. Retrying in 2s... " +
-                             "(Is XR initialized? Is the headset awake?)");
+            Debug.Log($"[AnchorSystem] Right controller found: '{_rightController.name}'");
         }
     }
 
     // -------------------------------------------------------------------------
     // Procedural mesh helpers
     // -------------------------------------------------------------------------
+
+    private void BuildPointerLine()
+    {
+        GameObject lineObj = new GameObject("PointerLine");
+        lineObj.transform.SetParent(this.transform);
+        _pointerLine = lineObj.AddComponent<LineRenderer>();
+        
+        _pointerLine.startWidth = lineWidth;
+        _pointerLine.endWidth = lineWidth;
+        _pointerLine.positionCount = 2;
+        
+        // Use an Unlit shader for the line so it remains bright and visible
+        var mat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+        mat.color = lineColor;
+        _pointerLine.material = mat;
+        _pointerLine.enabled = false;
+    }
 
     private void BuildCursorDisc()
     {

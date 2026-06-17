@@ -6,6 +6,9 @@
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 
+# API keys and other secrets
+/Assets/LocalSecrets/
+/Assets/LocalSecrets.meta
 
 # Memory dumps
 *.kdmp

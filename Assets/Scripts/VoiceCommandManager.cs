@@ -16,14 +16,13 @@ public class VoiceCommandManager : MonoBehaviour
     [Tooltip("Reference to the script handling VR controller inputs. Will auto-find if left null.")]
     public GroundAnchorManager anchorManager;
 
-    [Header("OpenAI Whisper API")]
-    public string openAIApiKey = "YOUR_OPENAI_API_KEY_HERE";
+    [Header("OpenAI Whisper Settings")]
+    // public string openAIApiKey = "YOUR_OPENAI_API_KEY_HERE";
     public string transcriptionModel = "whisper-1";
     public string language = "en"; 
 
     [Header("Recording Settings")]
     public int maxRecordingSeconds = 30;
-    public int recordingSampleRate = 48000;
 
     [Header("Microphone Debug")]
     public int preferredMicrophoneIndex = 0;
@@ -34,6 +33,7 @@ public class VoiceCommandManager : MonoBehaviour
     private float recordingStartTime;
 
     // Internal state
+    private const int recordingSampleRate = 48000;
     private bool isRecording = false;
     private bool isUploading = false;
     private AudioClip recordedClip;
@@ -47,7 +47,29 @@ public class VoiceCommandManager : MonoBehaviour
     {
         public string text;
     }
+    public static string LoadOpenAIApiKey()
+    {
+        string path = Path.Combine(Application.dataPath, "LocalSecrets/whisper_key.txt");
 
+        if (!File.Exists(path))
+        {
+            Debug.LogError("API key file not found: " + path);
+            return null;
+        }
+
+        string apiKey = File.ReadAllText(path).Trim();
+
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            Debug.LogError("API key file is empty.");
+            return null;
+        }
+
+        return apiKey;
+    }
+
+    string openAIApiKey = LoadOpenAIApiKey();
+    
     private void Start()
     {
         // 1. Hook up the VR inputs
@@ -89,15 +111,15 @@ public class VoiceCommandManager : MonoBehaviour
         int index = Mathf.Clamp(preferredMicrophoneIndex, 0, Microphone.devices.Length - 1);
         microphoneDevice = Microphone.devices[index];
 
-        Microphone.GetDeviceCaps(microphoneDevice, out int minFreq, out int maxFreq);
+        // Microphone.GetDeviceCaps(microphoneDevice, out int minFreq, out int maxFreq);
 
-        if (maxFreq > 0)
-        {
-            recordingSampleRate = Mathf.Clamp(recordingSampleRate, minFreq, maxFreq);
-        }
+        // if (maxFreq > 0)
+        // {
+        //     recordingSampleRate = Mathf.Clamp(recordingSampleRate, minFreq, maxFreq);
+        // }
 
         Debug.Log($"<color=green>[VoiceCommandManager] Selected microphone: {microphoneDevice}</color>");
-        Debug.Log($"[VoiceCommandManager] Device caps: minFreq={minFreq}, maxFreq={maxFreq}, usingSampleRate={recordingSampleRate}");
+        // Debug.Log($"[VoiceCommandManager] Device caps: minFreq={minFreq}, maxFreq={maxFreq}, usingSampleRate={recordingSampleRate}");
     }
 
     // -------------------------------------------------------------------------

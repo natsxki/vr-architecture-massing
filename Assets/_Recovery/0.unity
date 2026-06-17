@@ -1606,6 +1606,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 252337411}
+  - component: {fileID: 252337412}
   m_Layer: 0
   m_Name: MuseumApp_Manager
   m_TagString: Untagged
@@ -1628,6 +1629,28 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &252337412
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 252337407}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a696c4fbad7d2e04ea0fc56d0469c531, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VoiceCommandManager
+  anchorManager: {fileID: 0}
+  openAIApiKey: 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
+  transcriptionModel: whisper-1
+  language: en
+  maxRecordingSeconds: 30
+  recordingSampleRate: 48000
+  preferredMicrophoneIndex: 0
+  minRecordingSeconds: 0.8
+  silenceRmsThreshold: 0.003
+  saveDebugWav: 1
 --- !u!1 &255244390
 GameObject:
   m_ObjectHideFlags: 0
@@ -7239,60 +7262,6 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.008180305, y: -0.0053694975, z: -0.020344593}
     m_Extent: {x: 0.046097815, y: 0.067293465, z: 0.0557265}
   m_DirtyAABB: 0
---- !u!1 &1094318756
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1094318758}
-  - component: {fileID: 1094318757}
-  m_Layer: 0
-  m_Name: VoiceCommandManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1094318757
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1094318756}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a696c4fbad7d2e04ea0fc56d0469c531, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::VoiceCommandManager
-  anchorManager: {fileID: 0}
-  openAIApiKey: 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
-  transcriptionModel: whisper-1
-  language: en
-  maxRecordingSeconds: 30
-  recordingSampleRate: 48000
-  preferredMicrophoneIndex: 0
-  minRecordingSeconds: 0.8
-  silenceRmsThreshold: 0.003
-  saveDebugWav: 1
---- !u!4 &1094318758
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1094318756}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.91818, y: 0, z: 4.01199}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1108570742
 GameObject:
   m_ObjectHideFlags: 0
@@ -11856,7 +11825,6 @@ SceneRoots:
   - {fileID: 330585546}
   - {fileID: 410087041}
   - {fileID: 832575519}
-  - {fileID: 1094318758}
   - {fileID: 252337411}
   - {fileID: 59308496}
   - {fileID: 2141915638}

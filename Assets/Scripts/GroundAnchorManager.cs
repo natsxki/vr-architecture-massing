@@ -7,7 +7,7 @@ using UnityEngine.XR;
 /// Uses low-level UnityEngine.XR device polling — no InputActionReference needed.
 ///
 /// Quest 3S right controller bindings:
-///   Primary Trigger      -> place / replace anchor
+///   Primary Trigger      -> place / replace anchor (ONLY if Y is approx 0)
 ///   B Button             -> cancel anchor
 ///   Grip (Press & Hold)  -> fire OnVoiceRecordStart
 ///   Grip (Release)       -> fire OnVoiceRecordStop (passes anchor position)
@@ -163,11 +163,19 @@ public class GroundAnchorManager : MonoBehaviour
         {
             if (hitGround)
             {
-                AnchorWorldPosition = hit.point;
-                HasAnchor = true;
-                _crossMarker.SetActive(true);
-                _crossMarker.transform.position = hit.point + Vector3.up * crossYOffset;
-                Debug.Log($"[AnchorSystem] *** Anchor PLACED at {AnchorWorldPosition} ***");
+                // Check if the hit point is on the Y=0 plane (using a small 1cm tolerance for float precision)
+                if (Mathf.Abs(hit.point.y) < 0.01f)
+                {
+                    AnchorWorldPosition = hit.point;
+                    HasAnchor = true;
+                    _crossMarker.SetActive(true);
+                    _crossMarker.transform.position = hit.point + Vector3.up * crossYOffset;
+                    Debug.Log($"[AnchorSystem] *** Anchor PLACED at {AnchorWorldPosition} ***");
+                }
+                else
+                {
+                    Debug.LogWarning($"[AnchorSystem] Anchor placement ignored. Y coordinate is {hit.point.y:F4}, not exactly 0.");
+                }
             }
         }
 
@@ -182,7 +190,6 @@ public class GroundAnchorManager : MonoBehaviour
             {
                 _isRecording = false;
                 Debug.LogWarning("[AnchorSystem] Anchor cancelled during recording. Aborting voice record.");
-                // You could optionally fire an OnVoiceRecordAbort event here if needed.
             }
             
             Debug.Log("[AnchorSystem] *** Anchor CANCELLED ***");

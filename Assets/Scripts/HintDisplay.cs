@@ -57,10 +57,10 @@ public class HintDisplay : MonoBehaviour
                 return "AI is generating massing options…\nPlease wait.";
 
             case AppPhase.Visualization:
-                return "<b>Left Grip</b>  →  select Option A\n" +
-                       "<b>Right Grip</b>  →  select Option B\n" +
+                return "<b>Left Trigger</b>  →  select Option A\n" +
+                       "<b>Right Trigger</b>  →  select Option B\n" +
                        "<b>Tilt Right Stick + release</b>  →  choose action\n" +
-                       "   Visualize  /  Save JSON  /  Iterate  /  Cancel";
+                       "   Visualize  /  Iterate  /  Cancel";
 
             default:
                 return "";
@@ -112,11 +112,9 @@ public class HintDisplay : MonoBehaviour
             return;
         }
 
-        // Toggle on grip button press (rising edge)
-        // Suppressed in ViewingOptions — left grip there selects Option A instead
+        // Toggle on left grip press (rising edge) — no longer conflicts with option selection
         _leftDevice.TryGetFeatureValue(CommonUsages.gripButton, out bool gripNow);
-        bool inViewingOptions = AppStateManager.Instance?.CurrentState == AppState.ViewingOptions;
-        if (gripNow && !_leftGripWasPressed && !inViewingOptions) Toggle();
+        if (gripNow && !_leftGripWasPressed) Toggle();
         _leftGripWasPressed = gripNow;
 
         if (!_hintsEnabled || _hintPanel == null) return;

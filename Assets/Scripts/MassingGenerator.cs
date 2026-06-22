@@ -47,8 +47,8 @@ public class MassingGenerator : MonoBehaviour
         BuildMuseum(data.option1, currentOption1Parent.transform);
         BuildMuseum(data.option2, currentOption2Parent.transform);
 
-        AddFloatingLabel(currentOption1Parent.transform, "◀ Option A\nLeft Grip");
-        AddFloatingLabel(currentOption2Parent.transform, "Option B ▶\nRight Grip");
+        AddFloatingLabel(currentOption1Parent.transform, "◀ Option A\nLeft Trigger");
+        AddFloatingLabel(currentOption2Parent.transform, "Option B ▶\nRight Trigger");
 
         JsonImportExport.LastResult = data;
         AppStateManager.Instance?.SetState(AppState.ViewingOptions);

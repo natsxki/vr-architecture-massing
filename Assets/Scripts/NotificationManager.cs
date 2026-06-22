@@ -477,8 +477,8 @@ public class NotificationManager : MonoBehaviour
                 return "Y to generate   •   R Grip to add or modify";
             case AppState.GeneratingMassing:
                 return "Generating options, please wait…";
-            //case AppState.ViewingOptions:
-            //return "L Grip for Option A   •   R Grip → Option B";
+            case AppState.ViewingOptions:
+                return "L Trigger → Option A   •   R Trigger → Option B";
             default:
                 return "";
         }

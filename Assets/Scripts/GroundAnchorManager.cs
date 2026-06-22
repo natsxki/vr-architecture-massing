@@ -81,6 +81,7 @@ public class GroundAnchorManager : MonoBehaviour
     private bool _triggerWasPressed;
     private bool _gripWasPressed;
     private bool _leftGripWasPressed;
+    private bool _leftTriggerWasPressed;
     private bool _bWasPressed;
     private bool _yWasPressed;
     private bool _isRecording;
@@ -165,24 +166,28 @@ public class GroundAnchorManager : MonoBehaviour
         _rightController.TryGetFeatureValue(CommonUsages.grip,            out float gripVal);
         _rightController.TryGetFeatureValue(CommonUsages.secondaryButton, out bool bPressed);
 
-        bool yPressed      = false;
-        float leftGripVal  = 0f;
+        bool yPressed         = false;
+        float leftGripVal     = 0f;
+        float leftTriggerVal  = 0f;
         if (_leftDeviceFound)
         {
             _leftController.TryGetFeatureValue(CommonUsages.secondaryButton, out yPressed);
-            _leftController.TryGetFeatureValue(CommonUsages.grip, out leftGripVal);
+            _leftController.TryGetFeatureValue(CommonUsages.grip,            out leftGripVal);
+            _leftController.TryGetFeatureValue(CommonUsages.trigger,         out leftTriggerVal);
         }
 
-        bool triggerPressed  = triggerVal  >= analogThreshold;
-        bool gripPressed     = gripVal     >= analogThreshold;
-        bool leftGripPressed = leftGripVal >= analogThreshold;
+        bool triggerPressed      = triggerVal      >= analogThreshold;
+        bool gripPressed         = gripVal          >= analogThreshold;
+        bool leftGripPressed     = leftGripVal      >= analogThreshold;
+        bool leftTriggerPressed  = leftTriggerVal   >= analogThreshold;
 
-        bool triggerRising  = triggerPressed  && !_triggerWasPressed;
-        bool bRising        = bPressed        && !_bWasPressed;
-        bool gripRising     = gripPressed     && !_gripWasPressed;
-        bool gripFalling    = !gripPressed    && _gripWasPressed;
-        bool yRising        = yPressed        && !_yWasPressed;
-        bool leftGripRising = leftGripPressed && !_leftGripWasPressed;
+        bool triggerRising      = triggerPressed     && !_triggerWasPressed;
+        bool bRising            = bPressed           && !_bWasPressed;
+        bool gripRising         = gripPressed         && !_gripWasPressed;
+        bool gripFalling        = !gripPressed        && _gripWasPressed;
+        bool yRising            = yPressed            && !_yWasPressed;
+        bool leftGripRising     = leftGripPressed     && !_leftGripWasPressed;
+        bool leftTriggerRising  = leftTriggerPressed  && !_leftTriggerWasPressed;
 
         // --- Pointer, cursor and trigger locked in design/review states ---
         bool designLocked = IsDesignLocked();
@@ -253,17 +258,14 @@ public class GroundAnchorManager : MonoBehaviour
             Debug.Log("[AnchorSystem] Anchor cancelled");
         }
 
-        // --- Option selection (ViewingOptions only): grips choose A / B ---
+        // --- Option selection (ViewingOptions only): triggers choose A / B ---
         var currentState = AppStateManager.Instance?.CurrentState;
         bool inViewingOptions = currentState == AppState.ViewingOptions;
 
-        if (gripRising || leftGripRising)
-            Debug.Log($"[AnchorSystem] Grip detected — state={currentState}, inViewingOptions={inViewingOptions}, leftGrip={leftGripRising}, rightGrip={gripRising}");
-
         if (inViewingOptions)
         {
-            if (leftGripRising) { Debug.Log("[AnchorSystem] Option A selected"); OnOptionASelected?.Invoke(); }
-            if (gripRising)     { Debug.Log("[AnchorSystem] Option B selected"); OnOptionBSelected?.Invoke(); }
+            if (leftTriggerRising) { Debug.Log("[AnchorSystem] Option A selected (L Trigger)"); OnOptionASelected?.Invoke(); }
+            if (triggerRising)     { Debug.Log("[AnchorSystem] Option B selected (R Trigger)"); OnOptionBSelected?.Invoke(); }
         }
 
         // --- Grip: voice recording (only when anchor placed and NOT in ViewingOptions) ---
@@ -292,11 +294,12 @@ public class GroundAnchorManager : MonoBehaviour
         }
 
         // --- Store previous frame ---
-        _triggerWasPressed  = triggerPressed;
-        _gripWasPressed     = gripPressed;
-        _leftGripWasPressed = leftGripPressed;
-        _bWasPressed        = bPressed;
-        _yWasPressed        = yPressed;
+        _triggerWasPressed      = triggerPressed;
+        _gripWasPressed         = gripPressed;
+        _leftGripWasPressed     = leftGripPressed;
+        _leftTriggerWasPressed  = leftTriggerPressed;
+        _bWasPressed            = bPressed;
+        _yWasPressed            = yPressed;
     }
 
     // -------------------------------------------------------------------------

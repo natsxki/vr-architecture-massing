@@ -8,7 +8,16 @@
 
 # API keys and other secrets
 /Assets/LocalSecrets/
+/Assets/Resources/whisper_key.txt
+/Assets/Resources/whisper_key.txt.meta
+/Assets/Resources/gemini_key.txt
+/Assets/Resources/gemini_key.txt.meta
 /Assets/LocalSecrets.meta
+
+/[Vv]0_BackUpThisFolder_ButDontShipItWithYourGame/
+/[Vv]1_BackUpThisFolder_ButDontShipItWithYourGame/
+/*_BurstDebugInformation_DoNotShip/
+.utmp/
 
 # Memory dumps
 *.kdmp

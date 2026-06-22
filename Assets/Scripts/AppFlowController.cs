@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class AppFlowController : MonoBehaviour
 {
+    public static AppFlowController Instance { get; private set; }
+
     [Header("Managers")]
     public GeminiManager geminiManager;
 
@@ -10,32 +12,37 @@ public class AppFlowController : MonoBehaviour
     [TextArea]
     public string editorTestPrompt = "I want a large main exhibition hall in the center, surrounded by three smaller, quiet sensory rooms spread out like a star.";
 
+    private void Awake()
+    {
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+    }
+
+    // -------------------------------------------------------------------------
+
     /// <summary>
-    /// Link this method to your VR Canvas Button (OnClick) or Meta Poke Interactable.
+    /// Link this to a VR Canvas Button for editor / quick testing.
     /// </summary>
     public void OnStartButtonPressed()
     {
-        Debug.Log("Button Pressed: Starting Generation Flow...");
-
-        // In the final Quest build, you will call your Meta Voice SDK (Wit.ai) here.
-        // It will listen, transcribe, and return a string.
-        
-        // For the MVP and Editor testing, we immediately fire the fallback text:
+        Debug.Log("[AppFlow] Start button pressed (editor test).");
         OnVoiceTranscriptionComplete(editorTestPrompt);
     }
 
     /// <summary>
-    /// The Meta Voice SDK will fire an event when the user finishes speaking.
-    /// Link that event to this method.
+    /// Called by MuseumDescriptionPanel.OnOk() when the user is happy with
+    /// their recorded description and wants to generate massing options.
     /// </summary>
     public void OnVoiceTranscriptionComplete(string transcribedText)
     {
         if (string.IsNullOrWhiteSpace(transcribedText))
         {
-            Debug.LogWarning("Transcribed text was empty. Aborting.");
+            NotificationManager.Instance?.ShowWarning("Description is empty — record something first.");
             return;
         }
 
-        geminiManager.RequestMassingOptions(transcribedText);
+        string iterationBase = OptionSelectionMenu.IterationBaseJson;
+        OptionSelectionMenu.ClearIterationBase();
+        geminiManager.RequestMassingOptions(transcribedText, iterationBase);
     }
 }

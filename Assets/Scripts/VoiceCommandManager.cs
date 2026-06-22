@@ -16,10 +16,13 @@ public class VoiceCommandManager : MonoBehaviour
     [Tooltip("Reference to the script handling VR controller inputs. Will auto-find if left null.")]
     public GroundAnchorManager anchorManager;
 
+    [Header("API Key")]
+    [Tooltip("Drag Assets/LocalSecrets/whisper_key.txt here. TextAsset loads correctly on Quest (Android).")]
+    public TextAsset whisperKeyAsset;
+
     [Header("OpenAI Whisper Settings")]
-    // public string openAIApiKey = "YOUR_OPENAI_API_KEY_HERE";
     public string transcriptionModel = "whisper-1";
-    public string language = "en"; 
+    public string language = "en";
 
     [Header("Recording Settings")]
     public int maxRecordingSeconds = 30;
@@ -30,7 +33,12 @@ public class VoiceCommandManager : MonoBehaviour
     public float silenceRmsThreshold = 0.003f;
     public bool saveDebugWav = true;
 
+    public static VoiceCommandManager Instance { get; private set; }
+
     private float recordingStartTime;
+    private readonly List<string> _allTranscriptions = new List<string>();
+
+    public void ClearTranscriptions() => _allTranscriptions.Clear();
 
     // Internal state
     private const int recordingSampleRate = 48000;
@@ -39,6 +47,7 @@ public class VoiceCommandManager : MonoBehaviour
     private AudioClip recordedClip;
     private string microphoneDevice;
     private Vector3 currentAnchorPosition;
+    private string openAIApiKey;
 
     private const string TranscriptionUrl = "https://api.openai.com/v1/audio/transcriptions";
 
@@ -47,31 +56,41 @@ public class VoiceCommandManager : MonoBehaviour
     {
         public string text;
     }
-    public static string LoadOpenAIApiKey()
+    
+    private void Awake()
     {
-        string path = Path.Combine(Application.dataPath, "LocalSecrets/whisper_key.txt");
-
-        if (!File.Exists(path))
-        {
-            Debug.LogError("API key file not found: " + path);
-            return null;
-        }
-
-        string apiKey = File.ReadAllText(path).Trim();
-
-        if (string.IsNullOrEmpty(apiKey))
-        {
-            Debug.LogError("API key file is empty.");
-            return null;
-        }
-
-        return apiKey;
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
     }
 
-    string openAIApiKey = LoadOpenAIApiKey();
-    
     private void Start()
     {
+        // ── Key loading with automatic fallbacks ──────────────────────────────
+        // 1. Inspector TextAsset (preferred — works on Quest)
+        // 2. Editor-only: load directly from Assets/LocalSecrets/ without a drag
+        // 3. Runtime fallback: Assets/Resources/whisper_key.txt
+#if UNITY_EDITOR
+        if (whisperKeyAsset == null)
+            whisperKeyAsset = UnityEditor.AssetDatabase.LoadAssetAtPath<TextAsset>(
+                "Assets/LocalSecrets/whisper_key.txt");
+#endif
+        if (whisperKeyAsset == null)
+            whisperKeyAsset = Resources.Load<TextAsset>("whisper_key");
+
+        if (whisperKeyAsset != null)
+        {
+            openAIApiKey = whisperKeyAsset.text
+                .Trim()
+                .TrimStart('﻿'); // strip BOM if present
+            Debug.Log($"[VoiceCommandManager] Whisper key loaded, length={openAIApiKey.Length}");
+        }
+        else
+        {
+            Debug.LogError("[VoiceCommandManager] Whisper key not found. " +
+                           "Drag whisper_key.txt onto the Inspector field, " +
+                           "or copy it to Assets/Resources/whisper_key.txt.");
+        }
+
         // 1. Hook up the VR inputs
         if (anchorManager == null)
         {
@@ -128,14 +147,16 @@ public class VoiceCommandManager : MonoBehaviour
 
     private void HandleVoiceRecordStart()
     {
-        if (isUploading) 
+        if (isUploading)
         {
+            NotificationManager.Instance?.ShowWarning("Still transcribing — please wait.");
             Debug.LogWarning("[VoiceCommandManager] Currently transcribing, please wait...");
             return;
         }
 
         if (string.IsNullOrEmpty(openAIApiKey) || openAIApiKey == "YOUR_OPENAI_API_KEY_HERE")
         {
+            NotificationManager.Instance?.ShowWarning("Whisper API key missing. Check LocalSecrets/whisper_key.txt.");
             Debug.LogError("[VoiceCommandManager] OpenAI API Key is missing!");
             return;
         }
@@ -143,17 +164,11 @@ public class VoiceCommandManager : MonoBehaviour
         if (!isRecording && !string.IsNullOrEmpty(microphoneDevice))
         {
             Debug.Log("<color=yellow>[VoiceCommandManager] Recording Started...</color>");
-            recordedClip = Microphone.Start(
-            microphoneDevice,
-            false,
-            maxRecordingSeconds,
-            recordingSampleRate
-        );
-
-        recordingStartTime = Time.realtimeSinceStartup;
-        isRecording = true;
-
-        StartCoroutine(CheckMicrophoneActuallyStarted());
+            recordedClip = Microphone.Start(microphoneDevice, false, maxRecordingSeconds, recordingSampleRate);
+            recordingStartTime = Time.realtimeSinceStartup;
+            isRecording = true;
+            AppStateManager.Instance?.SetState(AppState.Recording);
+            StartCoroutine(CheckMicrophoneActuallyStarted());
         }
     }
 
@@ -202,6 +217,8 @@ public class VoiceCommandManager : MonoBehaviour
 
         if (durationFromPosition < minRecordingSeconds)
         {
+            NotificationManager.Instance?.ShowWarning("Recording too short — hold the grip longer.");
+            AppStateManager.Instance?.SetState(AppState.Idle);
             Debug.LogWarning($"[VoiceCommandManager] Recording too short ({durationFromPosition:F2}s). Not sending to Whisper.");
             return;
         }
@@ -224,10 +241,14 @@ public class VoiceCommandManager : MonoBehaviour
 
         if (rms < silenceRmsThreshold || peak < 0.01f)
         {
+            NotificationManager.Instance?.ShowWarning("No audio detected — check your microphone.");
+            AppStateManager.Instance?.SetState(AppState.Idle);
             Debug.LogWarning($"[VoiceCommandManager] Audio is probably silent. RMS={rms:F6}, Peak={peak:F6}. Not sending to Whisper.");
             return;
         }
 
+        AppStateManager.Instance?.SetState(AppState.Transcribing);
+        NotificationManager.Instance?.ShowStatus("Sending to Whisper… transcribing your speech.");
         Debug.Log("<color=yellow>[VoiceCommandManager] Sending non-silent audio to Whisper...</color>");
         StartCoroutine(SendAudioToWhisper(wavData));
     }
@@ -265,7 +286,13 @@ public class VoiceCommandManager : MonoBehaviour
 
             if (request.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError($"[VoiceCommandManager] Whisper API Error: {request.error}");
+                string msg = request.responseCode > 0
+                    ? $"Whisper HTTP {request.responseCode}: {request.error}"
+                    : $"Whisper network error: {request.error}";
+                NotificationManager.Instance?.ShowWarning(msg);
+                AppStateManager.Instance?.SetState(AppState.Idle);
+                NotificationManager.Instance?.ClearStatus();
+                Debug.LogError($"[VoiceCommandManager] result={request.result} code={request.responseCode} error={request.error}");
                 Debug.LogError($"[VoiceCommandManager] Response: {rawResponse}");
                 yield break;
             }
@@ -278,13 +305,21 @@ public class VoiceCommandManager : MonoBehaviour
 
                 if (transcribedText.Equals("you", StringComparison.OrdinalIgnoreCase))
                 {
-                    Debug.LogWarning("[VoiceCommandManager] Whisper returned only \"You\". This usually indicates silence, very short audio, or wrong microphone input.");
+                    NotificationManager.Instance?.ShowWarning("Couldn't hear you — try again.");
+                    AppStateManager.Instance?.SetState(AppState.Idle);
+                    NotificationManager.Instance?.ClearStatus();
+                    Debug.LogWarning("[VoiceCommandManager] Whisper returned only \"You\" — likely silence.");
+                    yield break;
                 }
 
+                NotificationManager.Instance?.ClearStatus();
                 ProcessCommandForLLM(transcribedText, currentAnchorPosition);
             }
             else
             {
+                NotificationManager.Instance?.ShowWarning("Transcription returned empty — try again.");
+                AppStateManager.Instance?.SetState(AppState.Idle);
+                NotificationManager.Instance?.ClearStatus();
                 Debug.LogWarning("[VoiceCommandManager] Whisper returned empty text.");
             }
         }
@@ -294,19 +329,33 @@ public class VoiceCommandManager : MonoBehaviour
     // LLM Interface Pipeline
     // -------------------------------------------------------------------------
 
-    /// <summary>
-    /// This is the entry point for your future LLM integration.
-    /// </summary>
     private void ProcessCommandForLLM(string transcribedText, Vector3 targetPosition)
     {
-        Debug.Log("\n==================================================");
-        Debug.Log("<color=cyan><b>[READY FOR LLM]</b></color>");
-        Debug.Log($"<b>Transcribed Text:</b> \"{transcribedText}\"");
-        Debug.Log($"<b>Target Coordinate:</b> X:{targetPosition.x:F2}, Y:{targetPosition.y:F2}, Z:{targetPosition.z:F2}");
-        Debug.Log("==================================================\n");
+        Debug.Log($"[VoiceCommandManager] Transcribed: \"{transcribedText}\" at {targetPosition}");
 
-        // TODO: In the next step, you will call your Gemini API script from here.
-        // Example: llmManager.SendPrompt(transcribedText, targetPosition);
+        _allTranscriptions.Add(transcribedText);
+        string fallbackText = "• " + string.Join("\n• ", _allTranscriptions);
+
+        const string sectionKey = "Design";
+        string previousSummary = MuseumDescriptionPanel.Instance?.GetSectionText(sectionKey);
+
+        NotificationManager.Instance?.ShowStatus("Refining description with AI…");
+
+        if (GeminiManager.Instance != null)
+        {
+            GeminiManager.Instance.SummarizeDescription(previousSummary, transcribedText, fallbackText, summary =>
+            {
+                MuseumDescriptionPanel.Instance?.AddOrUpdateSection(sectionKey, summary);
+                AppStateManager.Instance?.SetState(AppState.ReviewingTranscription);
+                NotificationManager.Instance?.ClearStatus();
+            });
+        }
+        else
+        {
+            MuseumDescriptionPanel.Instance?.AddOrUpdateSection(sectionKey, fallbackText);
+            AppStateManager.Instance?.SetState(AppState.ReviewingTranscription);
+            NotificationManager.Instance?.ClearStatus();
+        }
     }
 
     // -------------------------------------------------------------------------

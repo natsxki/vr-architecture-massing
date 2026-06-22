@@ -1,0 +1,39 @@
+pluginManagement {
+    repositories {
+        **ARTIFACTORYREPOSITORY**
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+
+include ':launcher'
+include ':unityLibrary'
+**INCLUDES**
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        **ARTIFACTORYREPOSITORY**
+        google()
+        mavenCentral()
+        flatDir {
+            dirs "${project(':unityLibrary').projectDir}/libs"
+        }
+    }
+}
+
+gradle.beforeProject { project ->
+    project.plugins.whenPluginAdded { plugin ->
+        if (plugin.getClass().name.endsWith("com.android.build.gradle.LibraryPlugin") || 
+            plugin.getClass().name.endsWith("com.android.build.gradle.AppPlugin")) {
+            project.android {
+                if (project.name.contains("InteractionSdk")) {
+                    namespace = "com.oculus.Integration.interaction"
+                } else if (project.name.contains("OVRPlugin")) {
+                    namespace = "com.oculus.Integration.core"
+                }
+            }
+        }
+    }
+}

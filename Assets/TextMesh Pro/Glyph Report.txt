@@ -1,0 +1,12 @@
+Font: Google Sans  Style: Regular
+Point Size: 90   Padding: 0   SP/PD Ratio: 0.0%
+
+Characters included: 99/99
+Missing characters: 0
+Excluded characters: 0
+
+Characters missing from font file:
+----------------------------------------
+
+Characters excluded from packing:
+----------------------------------------

@@ -1,0 +1,5 @@
+/Users/lylia/Desktop/vr-architecture-massing/.utmp/RelWithDebInfo/5j70314s/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/lylia/Desktop/vr-architecture-massing/.utmp/RelWithDebInfo/5j70314s/arm64-v8a/CMakeFiles/rebuild_cache.dir
+/Users/lylia/Desktop/vr-architecture-massing/.utmp/RelWithDebInfo/5j70314s/arm64-v8a/GameActivity/CMakeFiles/game.dir
+/Users/lylia/Desktop/vr-architecture-massing/.utmp/RelWithDebInfo/5j70314s/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
+/Users/lylia/Desktop/vr-architecture-massing/.utmp/RelWithDebInfo/5j70314s/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir

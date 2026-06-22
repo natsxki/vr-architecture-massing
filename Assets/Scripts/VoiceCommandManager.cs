@@ -82,7 +82,9 @@ public class VoiceCommandManager : MonoBehaviour
             openAIApiKey = whisperKeyAsset.text
                 .Trim()
                 .TrimStart('﻿'); // strip BOM if present
-            Debug.Log($"[VoiceCommandManager] Whisper key loaded, length={openAIApiKey.Length}");
+            string source = whisperKeyAsset.name;
+            string prefix = openAIApiKey.Length >= 12 ? openAIApiKey.Substring(0, 12) : openAIApiKey;
+            Debug.Log($"[VoiceCommandManager] Whisper key loaded from '{source}', length={openAIApiKey.Length}, prefix={prefix}…");
         }
         else
         {

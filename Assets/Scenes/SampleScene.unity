@@ -8421,6 +8421,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GeminiManager
   geminiKeyAsset: {fileID: 4900000, guid: 06e58d6bdedd042bab50fd45d0afaa62, type: 3}
+  openAIKeyAsset: {fileID: 4900000, guid: 22db48b581ef54b23b52886f2ab89429, type: 3}
   generator: {fileID: 400388828}
 --- !u!4 &1093821774
 Transform:

@@ -14,7 +14,14 @@ public class GeminiManager : MonoBehaviour
     [Tooltip("Drag Assets/LocalSecrets/gemini_key.txt here. TextAsset loads correctly on Quest (Android).")]
     public TextAsset geminiKeyAsset;
 
+    [Header("OpenAI Fallback")]
+    [Tooltip("Drag Assets/LocalSecrets/whisper_key.txt here — same OpenAI key used by Whisper.")]
+    public TextAsset openAIKeyAsset;
+
     private string apiKey;
+    private string _openAIApiKey;
+    private const string OpenAIChatUrl   = "https://api.openai.com/v1/chat/completions";
+    private const string OpenAIModel     = "gpt-4o-mini";
 
     private static readonly string[] GeminiModels =
     {
@@ -64,6 +71,20 @@ public class GeminiManager : MonoBehaviour
             Debug.LogError("[GeminiManager] Gemini key not found. " +
                            "Drag gemini_key.txt onto the Inspector field, " +
                            "or copy it to Assets/Resources/gemini_key.txt.");
+        }
+
+#if UNITY_EDITOR
+        if (openAIKeyAsset == null)
+            openAIKeyAsset = UnityEditor.AssetDatabase.LoadAssetAtPath<TextAsset>(
+                "Assets/LocalSecrets/whisper_key.txt");
+#endif
+        if (openAIKeyAsset == null)
+            openAIKeyAsset = Resources.Load<TextAsset>("whisper_key");
+
+        if (openAIKeyAsset != null)
+        {
+            _openAIApiKey = openAIKeyAsset.text.Trim().TrimStart('﻿');
+            Debug.Log($"[GeminiManager] OpenAI fallback key loaded, length={_openAIApiKey.Length}");
         }
     }
 
@@ -153,8 +174,13 @@ public class GeminiManager : MonoBehaviour
                 Debug.LogWarning($"[GeminiManager] {GeminiModels[_modelIndex]} summarise failed ({request.responseCode})");
                 if (attempt == GeminiModels.Length - 1)
                 {
-                    NotificationManager.Instance?.ShowWarning("Gemini unavailable — showing your recordings instead.");
-                    onComplete?.Invoke(fallbackText);
+                    if (!string.IsNullOrEmpty(_openAIApiKey))
+                        yield return StartCoroutine(SummarizeWithOpenAI(input, fallbackText, onComplete));
+                    else
+                    {
+                        NotificationManager.Instance?.ShowWarning("AI unavailable — showing your recordings instead.");
+                        onComplete?.Invoke(fallbackText);
+                    }
                 }
             }
         }
@@ -216,10 +242,151 @@ public class GeminiManager : MonoBehaviour
 
                 if (attempt == GeminiModels.Length - 1)
                 {
-                    NotificationManager.Instance?.ShowWarning("All Gemini models unavailable — try again later.");
+                    if (!string.IsNullOrEmpty(_openAIApiKey))
+                    {
+                        NotificationManager.Instance?.ShowStatus("Gemini unavailable — trying OpenAI…");
+                        yield return StartCoroutine(SendRequestToOpenAI(userContent));
+                    }
+                    else
+                    {
+                        NotificationManager.Instance?.ShowWarning("All AI models unavailable — try again later.");
+                        NotificationManager.Instance?.ClearStatus();
+                        AppStateManager.Instance?.SetState(AppState.ReviewingTranscription);
+                    }
+                }
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // OpenAI fallback coroutines
+    // -------------------------------------------------------------------------
+
+    private IEnumerator SendRequestToOpenAI(string userContent)
+    {
+        var payload = new
+        {
+            model    = OpenAIModel,
+            messages = new[]
+            {
+                new { role = "system", content =
+                    "You are an architectural massing generator for a VR tabletop application. " +
+                    "The user will describe a sensory museum. Generate two distinct spatial layouts " +
+                    "consisting strictly of orthogonal, rectangular volumes. " +
+                    "CRITICAL RULES: Miniature tabletop scale — entire museum fits on a 1×1 m table; " +
+                    "room dimensions (scaleX/Y/Z) strictly between 0.05 and 0.3; " +
+                    "all rooms must physically connect — add corridor/passageway rooms if needed; " +
+                    "set posY=0.0 for ground-level rooms; calculate posX/posZ so edges touch. " +
+                    "Output ONLY raw JSON — no markdown, no backticks, no extra text — matching exactly: " +
+                    "{\"option1\":{\"optionName\":\"\",\"architecturalConcept\":\"\",\"rooms\":[{\"roomName\":\"\",\"posX\":0.0,\"posY\":0.0,\"posZ\":0.0,\"scaleX\":0.0,\"scaleY\":0.0,\"scaleZ\":0.0}]},\"option2\":{}}" },
+                new { role = "user", content = userContent }
+            },
+            response_format = new { type = "json_object" }
+        };
+
+        string jsonPayload = JsonConvert.SerializeObject(payload);
+
+        using (UnityWebRequest request = new UnityWebRequest(OpenAIChatUrl, "POST"))
+        {
+            request.uploadHandler   = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonPayload));
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+            request.SetRequestHeader("Authorization", "Bearer " + _openAIApiKey);
+
+            yield return request.SendWebRequest();
+
+            string raw = request.downloadHandler.text;
+            Debug.Log($"[GeminiManager] OpenAI massing response:\n{raw}");
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                try
+                {
+                    JObject resp    = JObject.Parse(raw);
+                    string  content = (string)resp["choices"][0]["message"]["content"]
+                                      ?? throw new System.Exception("No content in OpenAI response.");
+                    content = StripMarkdownFences(content.Trim());
+                    NotificationManager.Instance?.ShowStatus("Placing rooms in the scene…");
+
+                    MuseumMassingResult result;
+                    try   { result = JsonConvert.DeserializeObject<MuseumMassingResult>(content); }
+                    catch { result = JsonConvert.DeserializeObject<MuseumMassingResult>(content.Replace("'", "\"")); }
+
+                    if (result?.option1 == null || result?.option2 == null)
+                        throw new System.Exception("option1 or option2 missing.");
+
+                    generator.GenerateMassings(result);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"[GeminiManager] OpenAI massing parse error: {e.Message}\n{raw}");
+                    NotificationManager.Instance?.ShowWarning($"OpenAI parse error — try again.");
                     NotificationManager.Instance?.ClearStatus();
                     AppStateManager.Instance?.SetState(AppState.ReviewingTranscription);
                 }
+            }
+            else
+            {
+                Debug.LogError($"[GeminiManager] OpenAI fallback failed ({request.responseCode}): {request.error}\n{raw}");
+                NotificationManager.Instance?.ShowWarning($"OpenAI also failed ({request.responseCode}) — try again.");
+                NotificationManager.Instance?.ClearStatus();
+                AppStateManager.Instance?.SetState(AppState.ReviewingTranscription);
+            }
+        }
+    }
+
+    private IEnumerator SummarizeWithOpenAI(string input, string fallbackText, System.Action<string> onComplete)
+    {
+        var payload = new
+        {
+            model    = OpenAIModel,
+            messages = new[]
+            {
+                new { role = "system", content =
+                    "You extract spatial design requirements from spoken museum descriptions into a concise JSON keyword map. " +
+                    "Identify place types (hall, cafe, gallery, sensory room, lobby, garden, corridor, passageway, or any room type described) " +
+                    "and their qualities as comma-separated keywords. " +
+                    "If a previous summary is provided, merge it with the new input — new input takes priority for conflicts. " +
+                    "Output ONLY raw JSON, no markdown, no extra text. Example: {\"hall\":\"large, bright, central\",\"cafe\":\"cozy, quiet\"}." },
+                new { role = "user", content = input }
+            },
+            response_format = new { type = "json_object" }
+        };
+
+        string jsonPayload = JsonConvert.SerializeObject(payload);
+
+        using (UnityWebRequest request = new UnityWebRequest(OpenAIChatUrl, "POST"))
+        {
+            request.uploadHandler   = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonPayload));
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+            request.SetRequestHeader("Authorization", "Bearer " + _openAIApiKey);
+
+            yield return request.SendWebRequest();
+
+            string raw = request.downloadHandler.text;
+            Debug.Log($"[GeminiManager] OpenAI summarise response:\n{raw}");
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                try
+                {
+                    JObject resp    = JObject.Parse(raw);
+                    string  content = (string)resp["choices"][0]["message"]["content"]
+                                      ?? throw new System.Exception("No content.");
+                    string  summary = FormatSummaryJson(content.Trim());
+                    onComplete?.Invoke(summary);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"[GeminiManager] OpenAI summarise parse error: {e.Message}\n{raw}");
+                    onComplete?.Invoke(fallbackText);
+                }
+            }
+            else
+            {
+                Debug.LogError($"[GeminiManager] OpenAI summarise failed ({request.responseCode}): {raw}");
+                onComplete?.Invoke(fallbackText);
             }
         }
     }

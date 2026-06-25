@@ -12,6 +12,11 @@ using UnityEngine.Networking;
 /// </summary>
 public class VoiceCommandManager : MonoBehaviour
 {
+    [Header("Library Mode (Silent Testing)")]
+    public bool bypassVoiceRecording = true;
+    [TextArea(3, 5)]
+    public string hardcodedTestString = "Here I want to build the entrance hall which is wide and low. Light gallery is tall and narrow on the left.";
+
     [Header("VR Interaction Link")]
     [Tooltip("Reference to the script handling VR controller inputs. Will auto-find if left null.")]
     public GroundAnchorManager anchorManager;
@@ -156,6 +161,16 @@ public class VoiceCommandManager : MonoBehaviour
             return;
         }
 
+        // --- NEW LIBRARY MODE BYPASS ---
+        if (bypassVoiceRecording)
+        {
+            isRecording = true;
+            AppStateManager.Instance?.SetState(AppState.Recording);
+            Debug.Log("<color=yellow>[VoiceCommandManager] Library Mode: Simulated recording started (holding grip).</color>");
+            return;
+        }
+        // -------------------------------
+
         if (string.IsNullOrEmpty(openAIApiKey) || openAIApiKey == "YOUR_OPENAI_API_KEY_HERE")
         {
             NotificationManager.Instance?.ShowWarning("Whisper API key missing. Check LocalSecrets/whisper_key.txt.");
@@ -199,6 +214,21 @@ public class VoiceCommandManager : MonoBehaviour
         {
             return;
         }
+
+        // --- NEW LIBRARY MODE BYPASS ---
+        if (bypassVoiceRecording)
+        {
+            isRecording = false;
+            currentAnchorPosition = position;
+            AppStateManager.Instance?.SetState(AppState.Transcribing); // Keep UI flow consistent
+            Debug.Log($"<color=green>[VoiceCommandManager] Library Mode: Sending hardcoded string to LLM.</color>");
+            NotificationManager.Instance?.ShowStatus("Library Mode: Sending text to LLM...");
+            
+            // Send directly to Gemini, skipping Whisper
+            ProcessCommandForLLM(hardcodedTestString, currentAnchorPosition);
+            return;
+        }
+        // -------------------------------
 
         int recordingPosition = Microphone.GetPosition(microphoneDevice);
         Microphone.End(microphoneDevice);

@@ -192,7 +192,21 @@ public class MassingGenerator : MonoBehaviour
 
     private static Color RoomColor(string roomName)
     {
-        float hue = (Mathf.Abs(roomName.ToLowerInvariant().GetHashCode()) % 1000) / 1000f;
-        return Color.HSVToRGB(hue, 0.55f, 0.85f);
+        switch (roomName)
+        {
+            // 蓝色 - 具有科技感和凉爽感
+            case "Entrance Hall": return new Color(0.2f, 0.5f, 0.8f); 
+            
+            // 黄色 - 温暖且醒目
+            case "Light Gallery": return new Color(0.9f, 0.8f, 0.2f); 
+            
+            // 红色 - 强烈、富有张力的色彩，适合焦点区域
+            case "Sound Gallery": return new Color(0.8f, 0.2f, 0.2f); 
+            
+            // 浅棕色 - 温和、大地色系，给人亲切感
+            case "Café":          return new Color(0.7f, 0.5f, 0.3f); 
+            
+            default:              return new Color(0.6f, 0.6f, 0.6f); // 默认灰色
+        }
     }
 }

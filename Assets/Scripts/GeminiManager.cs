@@ -43,6 +43,22 @@ public class GeminiManager : MonoBehaviour
     [Header("References")]
     public MassingGenerator generator;
 
+
+    private const string systemPrompt = 
+    "You are an architectural massing generator for a VR application. Generate two distinct spatial layouts for a sensory museum consisting strictly of orthogonal, rectangular volumes. " +
+    "CRITICAL MATHEMATICAL & ARCHITECTURAL RULES: " +
+    "1. Scale & Pivot: You are generating data for Unity cubes. Cubes are positioned based on their CENTER PIVOT. Dimensions (scaleX, scaleY, scaleZ) MUST be strictly between 0.05 and 0.3. " +
+    "2. Strict Mathematical Adjacency (NO OVERLAP, NO GAPS): To place Room B adjacent to Room A along the X-axis, the distance between their center posX values MUST be exactly half of Room A's scaleX plus half of Room B's scaleX. " +
+    "Formula: posX_B = posX_A +/- ((scaleX_A / 2) + (scaleX_B / 2)). " +
+    "The exact same formula applies to the Z-axis for posZ. You MUST mathematically calculate these center-to-center distances to ensure walls touch perfectly without intersecting. " +
+    "3. Grounding: Set posY to 0.0 for all ground-level rooms to ensure they sit perfectly flat on the table. " +
+    "4. Continuous Layout: All rooms MUST physically connect to form a single continuous building. If spatial separation is conceptually needed, you must autonomously generate connecting 'Corridor' rooms using the exact adjacency math above. " +
+
+    "Output your response ONLY as a raw JSON object matching this schema exactly, with no markdown code blocks, no backticks, no extra text: " +
+    "{ \"option1\": { \"optionName\": \"\", \"architecturalConcept\": \"\", \"rooms\": [ { \"roomName\": \"\", \"posX\": 0.0, \"posY\": 0.0, \"posZ\": 0.0, \"scaleX\": 0.0, \"scaleY\": 0.0, \"scaleZ\": 0.0 } ] }, \"option2\": { } }";
+
+
+
     // -------------------------------------------------------------------------
 
     private void Awake()
@@ -200,8 +216,7 @@ public class GeminiManager : MonoBehaviour
             {
                 parts = new[]
                 {
-                    new { text = "You are an architectural massing generator for a VR tabletop application. The user will describe a sensory museum. Generate two distinct spatial layouts consisting strictly of orthogonal, rectangular volumes. CRITICAL ARCHITECTURAL & PROCEDURAL RULES: ; Miniature Tabletop Scale: The entire museum must fit on a 1x1 meter table. Individual room dimensions (scaleX, scaleY, scaleZ) MUST be strictly between 0.05 and 0.3. ; Adjacency & Corridors: All generated rooms MUST physically connect to form a single continuous building. If the architectural layout requires spacing between main rooms, you MUST autonomously generate additional connecting rooms (e.g., named 'Passageway' or 'Corridor') to link them together. No floating or disconnected geometry is allowed. ; Grounding: Set posY to 0.0 for all ground-level rooms to ensure they sit perfectly flat on the table.; Layout: Calculate posX and posZ carefully so that rooms sit adjacent to each other with edges touching or slightly intersecting, avoiding massive overlaps.; Output your response ONLY as a raw JSON object matching this schema exactly, with no markdown code blocks, no backticks, no extra text: { \"option1\": { \"optionName\": \"\", \"architecturalConcept\": \"\", \"rooms\": [ { \"roomName\": \"\", \"posX\": 0.0, \"posY\": 0.0, \"posZ\": 0.0, \"scaleX\": 0.0, \"scaleY\": 0.0, \"scaleZ\": 0.0 } ] }, \"option2\": { } }." }
-                }
+                    new { text = systemPrompt }               }
             },
             contents = new[]
             {

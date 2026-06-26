@@ -16,10 +16,12 @@ public class MassingGenerator : MonoBehaviour
 
     [Header("Visualization")]
     [Tooltip("Scale factor when entering real-scale view.")]
-    public float realScaleFactor = 50f;
+    public float realScaleFactor = 4f;
 
     private GameObject currentOption1Parent;
     private GameObject currentOption2Parent;
+
+    private const float tabletopMultiplier = 2.0f;
 
     // -------------------------------------------------------------------------
 
@@ -139,8 +141,10 @@ public class MassingGenerator : MonoBehaviour
             GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
             cube.name = room.roomName;
             cube.transform.SetParent(parentNode);
-            cube.transform.localScale    = new Vector3(room.scaleX, room.scaleY, room.scaleZ);
-            cube.transform.localPosition = new Vector3(room.posX, room.posY + room.scaleY * 0.5f, room.posZ);
+            // 1. 等比例放大整个长方体的尺寸
+            cube.transform.localScale = new Vector3(room.scaleX * tabletopMultiplier, room.scaleY * tabletopMultiplier, room.scaleZ * tabletopMultiplier);
+            // 2. 坐标轴位置也同步放大（注意 Y 轴的算法，整体括起来乘以倍率，保证底部依然完美贴地不穿模）
+            cube.transform.localPosition = new Vector3(room.posX * tabletopMultiplier, (room.posY + room.scaleY * 0.5f) * tabletopMultiplier, room.posZ * tabletopMultiplier);
 
             var mat = new Material(shader);
             Color c = RoomColor(room.roomName);

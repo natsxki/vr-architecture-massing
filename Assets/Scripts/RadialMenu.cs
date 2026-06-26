@@ -284,6 +284,14 @@ public class RadialMenu : MonoBehaviour
         switch (index)
         {
             case 0:
+                // 如果正处于“看方案A和B”（ViewingOptions）的阶段，禁止进入编辑模式
+                if (AppStateManager.Instance != null && AppStateManager.Instance.CurrentState == AppState.ViewingOptions)
+                {
+                    NotificationManager.Instance?.ShowWarning("Please select an option first before editing.");
+                    Debug.LogWarning("[RadialMenu] Cannot enter Editing Mode during ViewingOptions state.");
+                    return; // 直接打断，不执行后续的切换逻辑
+                }
+
                 AppStateManager.IsEditingModeActive = !AppStateManager.IsEditingModeActive;
 
                 if (AppStateManager.IsEditingModeActive)

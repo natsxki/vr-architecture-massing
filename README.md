@@ -104,3 +104,57 @@ The generated models are simplified representations using colored rectangular vo
 
 - **Auto-generated forest** — Trees are procedurally placed in a ring around the anchor point at start.
 - **Invisible boundary walls** — Collision walls are generated automatically to keep the user within the play area.
+
+### Usage
+
+1. Open the Unity Project
+
+Clone or download the project repository, then open the project folder with Unity Hub.  
+Make sure the installed Unity version supports XR development and that the Android Build Support module is installed.
+
+Recommended setup:
+
+- Unity with Android Build Support
+- XR Interaction Toolkit
+- OpenXR Plugin
+- Meta Quest connected through USB or available for standalone build deployment
+
+2. Configure API Keys
+
+The system requires external AI services for speech transcription and massing generation.
+
+Before running the project, add your API keys for:
+
+- OpenAI Whisper API, used for speech-to-text transcription
+- Google Gemini API, used for architectural massing generation and description summarisation
+
+The keys should be assigned in the corresponding Unity scripts or configuration fields used by the project, such as the voice transcription manager and the Gemini manager. Do not commit personal API keys to a public repository.
+
+3. Set Up the XR Scene
+
+Open the main VR scene in Unity.  
+Check that the following components are active in the scene:
+
+- XR Origin / VR camera rig
+- AppStateManager
+- VoiceCommandManager
+- GeminiManager
+- MassingGenerator
+- GroundAnchorManager
+- UI managers for phase badge, radial menus, status messages, and option labels
+
+The scene should also include the procedural environment setup, including the forest and boundary walls.
+
+4. Run in Unity or Build to Meta Quest
+
+For quick testing, enter Play Mode in Unity with a connected XR setup if available.
+
+For standalone Quest testing:
+
+1. Connect the Meta Quest headset to the computer.
+2. Switch the Unity build target to Android.
+3. Enable OpenXR as the XR backend.
+4. Select the connected Quest device in Build Settings.
+5. Click **Build and Run**.
+
+After installation, launch the application inside the headset.  

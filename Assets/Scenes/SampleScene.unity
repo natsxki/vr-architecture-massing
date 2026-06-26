@@ -258,6 +258,8 @@ MonoBehaviour:
   rayOrigin: {fileID: 542925879}
   maxDistance: 30
   rayColor: {r: 0.1, g: 0.6, b: 1, a: 0.8}
+  handleSize: 0.05
+  handleOffset: 0.05
 --- !u!1 &14131656
 GameObject:
   m_ObjectHideFlags: 0
@@ -1766,7 +1768,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a696c4fbad7d2e04ea0fc56d0469c531, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VoiceCommandManager
-  bypassVoiceRecording: 1
+  bypassVoiceRecording: 0
   hardcodedTestString: Here I want to build the entrance hall which is wide and low.
     Light gallery is tall and narrow on the left.
   anchorManager: {fileID: 0}

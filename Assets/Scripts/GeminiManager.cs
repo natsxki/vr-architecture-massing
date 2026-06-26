@@ -139,7 +139,7 @@ public class GeminiManager : MonoBehaviour
             {
                 parts = new[] { new { text =
                     "You extract spatial design requirements from spoken museum descriptions into a concise JSON keyword map. " +
-                    "Identify place types explicitly or implicitly mentioned (hall, cafe, gallery, sensory room, lobby, garden, corridor, passageway, or any room type the user describes) and their qualities as comma-separated keywords. " +
+                    "Identify place types explicitly or implicitly mentioned (entrance hall, cafe, light gallery, sound gallery, cafe corridor, passageway, or any room type the user describes) and their qualities as comma-separated keywords. " +
                     "If a previous summary is provided, merge it with the new input — new input takes priority for conflicts. " +
                     "Output ONLY raw JSON, no markdown, no extra text. Example: {\"hall\": \"large, bright, central\", \"cafe\": \"cozy, quiet\"}."
                 } }

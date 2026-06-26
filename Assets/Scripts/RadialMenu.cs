@@ -41,7 +41,7 @@ public class RadialMenu : MonoBehaviour
 
     // Items: label + angle (degrees, standard trig convention — 0° = right, 90° = up)
     // 4 items at 90° intervals
-    private static readonly string[] Labels = { "Tutorial", "Home", "Import JSON", "Quit" };
+    private static readonly string[] Labels = { "Editing Mode", "Home", "Import JSON", "Quit" };
     private static readonly float[]  Angles = {  90f,        0f,     180f,          270f  };
     // 90°=top  0°=right  180°=left  270°=bottom
 
@@ -188,8 +188,23 @@ public class RadialMenu : MonoBehaviour
         for (int i = 0; i < 4; i++)
         {
             bool active = (i == _highlighted);
-            _itemBGs[i].color = active ? ColHighlight : ColNormal;
+            
+            // 1. 先按原本的逻辑确定默认颜色
+            Color targetColor = active ? ColHighlight : ColNormal;
 
+            // 2. --- NEW EDITING MODE OVERRIDE ---
+            // 如果是第0个按钮(Editing Mode)，并且编辑模式已激活
+            if (i == 0 && AppStateManager.IsEditingModeActive)
+            {
+                // 没指着它时用深正红色，指着它（active）时用极具冲击力的亮红色
+                targetColor = active ? new Color(1.0f, 0.2f, 0.2f, 0.95f) : new Color(0.75f, 0.1f, 0.1f, 0.9f);
+            }
+            // ------------------------------------
+
+            // 3. 赋值颜色
+            _itemBGs[i].color = targetColor;
+
+            // 4. 保持原本的平滑缩放动画不变
             float targetScale = active ? 1.10f : 1f;
             _itemBGs[i].transform.localScale = Vector3.Lerp(
                 _itemBGs[i].transform.localScale,
@@ -269,9 +284,23 @@ public class RadialMenu : MonoBehaviour
         switch (index)
         {
             case 0:
-                NotificationManager.RequestTutorial();
+                AppStateManager.IsEditingModeActive = !AppStateManager.IsEditingModeActive;
+
+                if (AppStateManager.IsEditingModeActive)
+                {
+                    Debug.Log("<color=cyan>[RadialMenu] Editing Mode Enabled.</color>");
+                    NotificationManager.Instance?.ShowStatus("Editing Mode: Select a room with Trigger.");
+                }
+                else
+                {
+                    Debug.Log("<color=cyan>[RadialMenu] Editing Mode Disabled.</color>");
+                    NotificationManager.Instance?.ShowStatus("Exited Editing Mode.");
+                }
+
+                // Restore state to Idle or let AppStateManager handle it, matching previous Tutorial logic
                 AppStateManager.Instance?.SetState(AppState.Idle);
-                break;
+                
+                return;
             case 1:
                 StartCoroutine(FadeAndReset());
                 break;

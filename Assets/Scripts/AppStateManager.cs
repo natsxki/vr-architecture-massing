@@ -26,6 +26,8 @@ public enum AppPhase
 public class AppStateManager : MonoBehaviour
 {
     public static AppStateManager Instance { get; private set; }
+    // Global flag to check if the user is currently manually editing room data.
+    public static bool IsEditingModeActive { get; set; } = false;
 
     public AppState CurrentState { get; private set; } = AppState.Splash;
     public AppPhase CurrentPhase { get; private set; } = AppPhase.None;

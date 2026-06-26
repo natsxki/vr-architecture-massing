@@ -153,6 +153,13 @@ public class GroundAnchorManager : MonoBehaviour
         TryFindLeftController();
         if (!_deviceFound) return;
 
+        if (AppStateManager.IsEditingModeActive)
+        {
+            _pointerLine.enabled = false;
+            _cursorDisc.SetActive(false);
+            return;
+        }
+
         // Dormant during splash screen
         if (AppStateManager.Instance != null && AppStateManager.Instance.CurrentState == AppState.Splash)
         {

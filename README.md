@@ -1,4 +1,13 @@
-# VR Architectural Concept Generator 
+<div align="center">
+
+  # ⋆౨ৎ⋆ VR Architectural Concept Generator ⋆౨ৎ⋆
+
+![Unity 6](https://img.shields.io/badge/Unity-6-FFB5C2?style=flat-square&logo=unity&logoColor=white)
+![URP](https://img.shields.io/badge/URP-17.4-C8B6FF?style=flat-square)
+![Meta Quest](https://img.shields.io/badge/Meta%20Quest-OpenXR-B5D8FF?style=flat-square&logo=meta&logoColor=white)
+![Gemini](https://img.shields.io/badge/Gemini-massing%20AI-B8E6D9?style=flat-square&logo=googlegemini&logoColor=white)
+![Whisper](https://img.shields.io/badge/Whisper-speech%20to%20text-FFE0B5?style=flat-square&logo=openai&logoColor=white)
+
 
 An interactive Virtual Reality prototype that leverages generative AI to instantly translate spoken architectural concepts into 3D massing models. Designed for the Meta Quest, this tool allows users to rapidly iterate on spatial designs for a small sensory museum using just their voice (and eventually the VR set controller).
 

@@ -8,6 +8,7 @@
 ![Gemini](https://img.shields.io/badge/Gemini-massing%20AI-B8E6D9?style=flat-square&logo=googlegemini&logoColor=white)
 ![Whisper](https://img.shields.io/badge/Whisper-speech%20to%20text-FFE0B5?style=flat-square&logo=openai&logoColor=white)
 
+</div>
 
 An interactive Virtual Reality prototype that leverages generative AI to instantly translate spoken architectural concepts into 3D massing models. Designed for the Meta Quest, this tool allows users to rapidly iterate on spatial designs for a small sensory museum using just their voice (and eventually the VR set controller).
 
